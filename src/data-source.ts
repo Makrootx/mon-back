@@ -6,7 +6,7 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 export const MongooseConnection: MongooseModuleFactoryOptions = {
-  uri: `mongodb://localhost:${process.env.MONGO_PORT}/`,
+  uri: `mongodb://${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/`,
   auth: {
     username: process.env.MONGO_USER,
     password: process.env.MONGO_PASSWORD,

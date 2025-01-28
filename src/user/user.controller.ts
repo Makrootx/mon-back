@@ -26,46 +26,57 @@ export class UserController {
     return this.userService.createNewUser(userDto);
   }
 
-  @UseGuards(AuthGuard)
-  @Get('/getUser')
-  async getuser(@User() userPayload: UserTokenDto) {
-    return await this.userService.findUserById(userPayload.id);
-  }
-
   @Post('/login')
   loginUser(@Body() userDto: UserLoginDto) {
     return this.userService.loginUser(userDto);
   }
 
   @UseGuards(AuthGuard)
-  @Post('/createBlog')
+  @Get('/auth/getUser')
+  async getuser(@User() userPayload: UserTokenDto) {
+    return await this.userService.getUser(userPayload.id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('/auth/createBlog')
   createBlog(@User() userDto: UserTokenDto, @Body() blogDto: BlogCreateDto) {
     return this.userService.createBlog(userDto, blogDto);
   }
 
   @UseGuards(AuthGuard)
-  @Get('')
-  getUser(@User() userDto: UserTokenDto) {
-    return this.userService.getUser(userDto);
-  }
-
-  @UseGuards(AuthGuard)
-  @Get('/blogs')
+  @Get('/auth/getUserWithBlogs')
   getUserWithBlogs(@User() userDto: UserTokenDto) {
-    return this.userService.getUserWithBlogs(userDto);
+    return this.userService.getUserWithBlogs(userDto.id);
   }
 
   @UseGuards(AuthGuard)
-  @Patch('/updateBlog')
+  @Patch('/auth/updateBlog')
   updateBlog(@User() userDto: UserTokenDto, @Body() blogDto: BlogUpdateDto) {
     return this.userService.updateUserBlog(userDto, blogDto);
   }
 
   @UseGuards(AuthGuard)
-  @Delete('/deleteBlog')
-  deleteBlog(@User() userDto: UserTokenDto, @Body() blogId: { id: string }) {
-    console.log(blogId.id);
-    this.userService.deleteUserBlog(userDto, blogId.id);
-    return HttpStatus.ACCEPTED;
+  @Delete('/auth/deleteBlog')
+  async deleteBlog(
+    @User() userDto: UserTokenDto,
+    @Body() blogId: { id: string },
+  ) {
+    try {
+      await this.userService.deleteUserBlog(userDto, blogId.id);
+      return HttpStatus.ACCEPTED;
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  @Post('/getUserBlogs')
+  getEnternalUserBlogs(@Body() userDto: { email: string }) {
+    return this.userService.getUserBlogs(userDto.email);
+  }
+
+  @Post('/getUser')
+  async getEnternalUser(@Body() userDto: { email: string }) {
+    const user = await this.userService.findUserByEmail(userDto.email);
+    return this.userService.getUser(user.id);
   }
 }

@@ -1,5 +1,5 @@
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { Model } from 'mongoose';
+import { Model, Query } from 'mongoose';
 import { User, UserDocument } from './schemas/user.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { CreateUserDto } from './dtos/create-user.dto';
@@ -10,6 +10,7 @@ import { BlogCreateDto } from 'src/blog/dtos/create-blog.dto';
 import { BlogService } from 'src/blog/blog.service';
 import { Blog, BlogDocument } from 'src/blog/schemas/blog.schema';
 import { BlogUpdateDto } from 'src/blog/dtos/update-blog.dto';
+import { Category } from 'src/blog/schemas/category.shema';
 
 @Injectable()
 export class UserService {
@@ -74,6 +75,21 @@ export class UserService {
     return user;
   }
 
+  async getUser(userId: string) {
+    const { password, ...user } = (await this.findUserById(userId)).toObject();
+    return user;
+  }
+
+  async getUserWithBlogs(userId: string) {
+    const user = (await this.findUserById(userId)).populate({
+      path: 'blog',
+      select: '-user',
+      populate: { path: 'category', model: Category.name },
+    });
+    const { password, ...userPayload } = (await user).toObject();
+    return userPayload;
+  }
+
   private generateAuthPayload(user: UserDocument) {
     return { accessToken: this.generateAccessToken(user) };
   }
@@ -100,30 +116,23 @@ export class UserService {
     return savedBlog.populate({ path: 'user', select: '-blog' });
   }
 
-  async getUser(userDto: UserTokenDto) {
-    const user = await this.userModel.findOne({ _id: userDto.id }).exec();
-    return user;
+  async getUserBlogs(userEmail: string) {
+    const user = await this.findUserByEmail(userEmail);
+    const blogs = await this.blogService.getUserBlogs(user._id);
+    return blogs;
   }
-
-  async getUserWithBlogs(userDto: UserTokenDto) {
-    const user = await this.userModel
-      .findOne({ _id: userDto.id })
-      .populate('blog')
-      .select('-password')
-      .exec();
-    return user;
-  }
-
-  async getUserBlogs(user) {}
 
   async updateUserBlog(userDto: UserTokenDto, blogDto: BlogUpdateDto) {
     await this.validateOwningBlog(userDto.id, blogDto.id);
-    const newBlog = await this.blogService.updateUserBlog(blogDto);
-    return newBlog.populate({ path: 'user category', select: '-blog' });
+    const newBlog = await this.blogService.propagateBlogPromiseWithLightUser(
+      this.blogService.updateUserBlog(blogDto),
+    );
+    return newBlog;
   }
 
   private async validateOwningBlog(userId: string, blogId: string) {
     const user = await (await this.findUserById(userId)).populate('blog');
+    console.log(user);
     const validateBlog = user.blog.some(
       (blog: BlogDocument) => blog._id.toString() == blogId,
     );

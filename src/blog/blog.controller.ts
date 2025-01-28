@@ -20,4 +20,14 @@ export class BlogController {
   getLatestBlogs() {
     return this.blogService.getLatestBlogs();
   }
+
+  @Post('/getBlogById')
+  getBlogById(@Body() blogDto: { id: string }) {
+    return this.blogService.getBlogById(blogDto.id);
+  }
+
+  @Get('/categories')
+  getAllCategories() {
+    return this.blogService.getCategories();
+  }
 }
